@@ -23,13 +23,15 @@ interface BlueprintTableViewProps {
   onSelectForQuestionGen: (item: AssessmentItem) => void;
   onSelectForInfographicPrompt: (item: AssessmentItem) => void;
   onOpenPromptModal: (item: AssessmentItem) => void;
+  onNavigateToManuscript?: () => void;
 }
 
 export const BlueprintTableView: React.FC<BlueprintTableViewProps> = ({
   items,
   onSelectForQuestionGen,
   onSelectForInfographicPrompt,
-  onOpenPromptModal
+  onOpenPromptModal,
+  onNavigateToManuscript
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedElement, setSelectedElement] = useState<string>('all');
@@ -86,6 +88,17 @@ export const BlueprintTableView: React.FC<BlueprintTableViewProps> = ({
 
           {/* Export Buttons Suite */}
           <div className="flex flex-wrap items-center gap-1.5">
+            {onNavigateToManuscript && (
+              <button
+                onClick={onNavigateToManuscript}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors shadow-xs"
+                title="Buka seluruh naskah soal lengkap berstimulus"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Buka Naskah Soal ({filteredItems.length} Butir)</span>
+              </button>
+            )}
+
             <button
               onClick={() => exportToExcel(filteredItems)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"

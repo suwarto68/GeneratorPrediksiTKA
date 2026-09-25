@@ -4,11 +4,12 @@
  * Jenjang SMP/MTs · Fase D · Kurikulum & Standar Asesmen Nasional
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { DashboardView } from './components/DashboardView';
 import { InputPredictView } from './components/InputPredictView';
 import { BlueprintTableView } from './components/BlueprintTableView';
+import { ManuscriptView } from './components/ManuscriptView';
 import { DistributionView } from './components/DistributionView';
 import { IndicatorGeneratorView } from './components/IndicatorGeneratorView';
 import { StimulusGeneratorView } from './components/StimulusGeneratorView';
@@ -18,6 +19,7 @@ import { InfographicPromptView } from './components/InfographicPromptView';
 import { QualityAnalysisView } from './components/QualityAnalysisView';
 import { Comparison2026View } from './components/Comparison2026View';
 import { UploadView } from './components/UploadView';
+import { CBTExamView } from './components/CBTExamView';
 import { DisclaimerFooter } from './components/DisclaimerFooter';
 import { PortablePromptsModal } from './components/PortablePromptsModal';
 
@@ -31,8 +33,12 @@ import {
   generatePredictedBlueprint, 
   AnalysisSummary 
 } from './services/predictionEngine';
-import { exportToExcel } from './services/exportService';
-import { BASELINE_2026_ITEMS, INITIAL_QUESTIONS_SAMPLE } from './data/baseline2026Data';
+import { 
+  exportToExcel, 
+  exportManuscriptToWord 
+} from './services/exportService';
+import { buildQuestionsManuscript } from './services/questionManuscriptService';
+import { BASELINE_2026_ITEMS } from './data/baseline2026Data';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -83,15 +89,23 @@ export default function App() {
     summary: AnalysisSummary;
   }>(() => generatePredictedBlueprint(config, BASELINE_2026_ITEMS));
 
+  // Active Full Question Manuscript synchronized with the Blueprint
+  const [questionsManuscript, setQuestionsManuscript] = useState<QuestionData[]>(() => 
+    buildQuestionsManuscript(blueprintItems)
+  );
+
   // Context cross-navigation states
   const [preselectedItem, setPreselectedItem] = useState<AssessmentItem | null>(null);
   const [questionToValidate, setQuestionToValidate] = useState<QuestionData | null>(null);
   const [promptModalItem, setPromptModalItem] = useState<AssessmentItem | null>(null);
+  const [isManuscriptUnlocked, setIsManuscriptUnlocked] = useState<boolean>(false);
 
   // Regenerate Blueprint when requested
   const handleGenerateBlueprint = () => {
     const updated = generatePredictedBlueprint(config, customItemsPool);
     setBlueprintData(updated);
+    const updatedQuestions = buildQuestionsManuscript(updated.items);
+    setQuestionsManuscript(updatedQuestions);
     setActiveTab('kisi-kisi');
   };
 
@@ -110,6 +124,7 @@ export default function App() {
     updatedSummary.totalAnalyzed = updatedItems.length;
 
     setBlueprintData({ items: updatedItems, summary: updatedSummary });
+    setQuestionsManuscript(buildQuestionsManuscript(updatedItems));
   };
 
   // Add uploaded file & extracted indicators
@@ -135,12 +150,21 @@ export default function App() {
     setConfig(updatedConfig);
     const updated = generatePredictedBlueprint(updatedConfig, customItemsPool);
     setBlueprintData(updated);
+    setQuestionsManuscript(buildQuestionsManuscript(updated.items));
     setActiveTab('kisi-kisi');
   };
 
   // Quick Global Actions
   const handleQuickExportExcel = () => {
     exportToExcel(blueprintItems);
+  };
+
+  const handleQuickExportWordManuscript = () => {
+    if (!isManuscriptUnlocked) {
+      setActiveTab('naskah-soal');
+      return;
+    }
+    exportManuscriptToWord(questionsManuscript, { includeAnswers: true });
   };
 
   const handlePrint = () => {
@@ -170,99 +194,118 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onQuickExportExcel={handleQuickExportExcel}
+        onQuickExportWordManuscript={handleQuickExportWordManuscript}
         onPrint={handlePrint}
         totalItems={blueprintItems.length}
       />
 
       {/* Main Dynamic View Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            items={blueprintItems}
-            summary={summary}
-            onNavigate={setActiveTab}
-            onExportExcel={handleQuickExportExcel}
-            onPrint={handlePrint}
-          />
-        )}
+      {activeTab === 'ujian-cbt' ? (
+        <main className="flex-1 w-full">
+          <CBTExamView questions={questionsManuscript} />
+        </main>
+      ) : (
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              items={blueprintItems}
+              summary={summary}
+              onNavigate={setActiveTab}
+              onExportExcel={handleQuickExportExcel}
+              onPrint={handlePrint}
+            />
+          )}
 
-        {activeTab === 'input-data' && (
-          <InputPredictView
-            config={config}
-            onChangeConfig={setConfig}
-            onGenerate={handleGenerateBlueprint}
-          />
-        )}
+          {activeTab === 'input-data' && (
+            <InputPredictView
+              config={config}
+              onChangeConfig={setConfig}
+              onGenerate={handleGenerateBlueprint}
+            />
+          )}
 
-        {activeTab === 'kisi-kisi' && (
-          <BlueprintTableView
-            items={blueprintItems}
-            onSelectForQuestionGen={handleSelectForQuestionGen}
-            onSelectForInfographicPrompt={handleSelectForInfographicPrompt}
-            onOpenPromptModal={(item) => setPromptModalItem(item)}
-          />
-        )}
+          {activeTab === 'kisi-kisi' && (
+            <BlueprintTableView
+              items={blueprintItems}
+              onSelectForQuestionGen={handleSelectForQuestionGen}
+              onSelectForInfographicPrompt={handleSelectForInfographicPrompt}
+              onOpenPromptModal={(item) => setPromptModalItem(item)}
+              onNavigateToManuscript={() => setActiveTab('naskah-soal')}
+            />
+          )}
 
-        {activeTab === 'distribusi' && (
-          <DistributionView
-            items={blueprintItems}
-            summary={summary}
-          />
-        )}
+          {activeTab === 'naskah-soal' && (
+            <ManuscriptView
+              questions={questionsManuscript}
+              blueprintItems={blueprintItems}
+              onValidateQuestion={handleNavigateToValidation}
+              onSelectForInfographicPrompt={handleSelectForInfographicPrompt}
+              isUnlocked={isManuscriptUnlocked}
+              onUnlockChange={setIsManuscriptUnlocked}
+            />
+          )}
 
-        {activeTab === 'generator-indikator' && (
-          <IndicatorGeneratorView
-            onAddIndicatorToBlueprint={handleAddIndicatorToBlueprint}
-            onNavigateToQuestionGen={handleSelectForQuestionGen}
-          />
-        )}
+          {activeTab === 'distribusi' && (
+            <DistributionView
+              items={blueprintItems}
+              summary={summary}
+            />
+          )}
 
-        {activeTab === 'generator-stimulus' && (
-          <StimulusGeneratorView />
-        )}
+          {activeTab === 'generator-indikator' && (
+            <IndicatorGeneratorView
+              onAddIndicatorToBlueprint={handleAddIndicatorToBlueprint}
+              onNavigateToQuestionGen={handleSelectForQuestionGen}
+            />
+          )}
 
-        {activeTab === 'generator-soal' && (
-          <QuestionGeneratorView
-            blueprintItems={blueprintItems}
-            preselectedItem={preselectedItem}
-            onValidateQuestion={handleNavigateToValidation}
-          />
-        )}
+          {activeTab === 'generator-stimulus' && (
+            <StimulusGeneratorView />
+          )}
 
-        {activeTab === 'validator' && (
-          <ValidatorView
-            questionToValidate={questionToValidate}
-            sampleQuestions={INITIAL_QUESTIONS_SAMPLE}
-          />
-        )}
+          {activeTab === 'generator-soal' && (
+            <QuestionGeneratorView
+              blueprintItems={blueprintItems}
+              preselectedItem={preselectedItem}
+              onValidateQuestion={handleNavigateToValidation}
+            />
+          )}
 
-        {activeTab === 'prompt-infografis' && (
-          <InfographicPromptView
-            blueprintItems={blueprintItems}
-            preselectedItem={preselectedItem}
-          />
-        )}
+          {activeTab === 'validator' && (
+            <ValidatorView
+              questionToValidate={questionToValidate}
+              sampleQuestions={questionsManuscript}
+            />
+          )}
 
-        {activeTab === 'kualitas' && (
-          <QualityAnalysisView
-            items={blueprintItems}
-            summary={summary}
-          />
-        )}
+          {activeTab === 'prompt-infografis' && (
+            <InfographicPromptView
+              blueprintItems={blueprintItems}
+              preselectedItem={preselectedItem}
+            />
+          )}
 
-        {activeTab === 'perbandingan' && (
-          <Comparison2026View />
-        )}
+          {activeTab === 'kualitas' && (
+            <QualityAnalysisView
+              items={blueprintItems}
+              summary={summary}
+            />
+          )}
 
-        {activeTab === 'upload' && (
-          <UploadView
-            uploadedDocs={uploadedDocs}
-            onAddDocument={handleAddDocument}
-            onRemoveDocument={handleRemoveDocument}
-            onIntegrateIntoPrediction={handleIntegrateUploadedDocs}
-          />
-        )}
-      </main>
+          {activeTab === 'perbandingan' && (
+            <Comparison2026View />
+          )}
+
+          {activeTab === 'upload' && (
+            <UploadView
+              uploadedDocs={uploadedDocs}
+              onAddDocument={handleAddDocument}
+              onRemoveDocument={handleRemoveDocument}
+              onIntegrateIntoPrediction={handleIntegrateUploadedDocs}
+            />
+          )}
+        </main>
+      )}
 
       {/* Portable Prompt Modal */}
       <PortablePromptsModal
@@ -271,7 +314,7 @@ export default function App() {
       />
 
       {/* Disclaimer Footer (Section AA) */}
-      <DisclaimerFooter />
+      {activeTab !== 'ujian-cbt' && <DisclaimerFooter />}
     </div>
   );
 }

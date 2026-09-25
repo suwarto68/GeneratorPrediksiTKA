@@ -13,13 +13,15 @@ import {
   Compass, 
   FileText,
   FileCheck,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MonitorPlay
 } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onQuickExportExcel: () => void;
+  onQuickExportWordManuscript: () => void;
   onPrint: () => void;
   totalItems: number;
 }
@@ -28,17 +30,20 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   onQuickExportExcel,
+  onQuickExportWordManuscript,
   onPrint,
   totalItems
 }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'ujian-cbt', label: 'Ujian Online (CBT ANBK)', icon: MonitorPlay, highlight: true },
     { id: 'input-data', label: 'Input Prediksi', icon: Sliders },
     { id: 'kisi-kisi', label: 'Tabel Kisi-Kisi', icon: FileSpreadsheet },
+    { id: 'naskah-soal', label: 'Naskah Soal & Stimulus (Docs)', icon: FileText },
     { id: 'distribusi', label: 'Distribusi Soal', icon: Layers },
     { id: 'generator-indikator', label: 'Gen. Indikator', icon: Compass },
-    { id: 'generator-stimulus', label: 'Gen. Stimulus', icon: BookOpen },
-    { id: 'generator-soal', label: 'Gen. Soal', icon: Sparkles },
+    { id: 'generator-stimulus', label: 'Variasi Stimulus Teks (~100 Kata)', icon: BookOpen },
+    { id: 'generator-soal', label: 'Editor Butir Soal', icon: Sparkles },
     { id: 'validator', label: 'Validator', icon: CheckCircle2 },
     { id: 'prompt-infografis', label: 'Prompt Infografis', icon: ImageIcon },
     { id: 'kualitas', label: 'Analisis Kualitas', icon: FileCheck },
@@ -71,12 +76,32 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setActiveTab('ujian-cbt')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all shadow-xs border ${
+                activeTab === 'ujian-cbt'
+                  ? 'bg-blue-800 text-white border-amber-400 ring-2 ring-amber-300'
+                  : 'bg-[#0A387E] hover:bg-blue-800 text-white border-blue-500'
+              }`}
+              title="Buka Ruang Ujian Online CBT ANBK Siswa & Panel Proktor"
+            >
+              <MonitorPlay className="w-3.5 h-3.5 text-amber-300" />
+              <span>Simulasi CBT ANBK</span>
+            </button>
+            <button
+              onClick={onQuickExportWordManuscript}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors shadow-xs"
+              title="Unduh Naskah Soal Lengkap format Docs / Word (.doc)"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Naskah Docs (.doc)</span>
+            </button>
+            <button
               onClick={onQuickExportExcel}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
               title="Unduh Kisi-Kisi format Excel (.xlsx)"
             >
               <Download className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Excel</span>
+              <span>Kisi-Kisi Excel</span>
             </button>
             <button
               onClick={onPrint}

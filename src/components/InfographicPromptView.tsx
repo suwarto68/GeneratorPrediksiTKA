@@ -6,10 +6,15 @@ import {
   Check, 
   ShieldAlert, 
   Download,
-  Layers
+  Layers,
+  MonitorPlay,
+  Eye,
+  FileCode
 } from 'lucide-react';
-import { AssessmentItem, InfographicPrompt } from '../types';
+import { AssessmentItem, InfographicPrompt, QuestionData } from '../types';
 import { createInfographicPrompt } from '../services/infographicPromptService';
+import { FULL_BASELINE_QUESTIONS } from '../services/questionManuscriptService';
+import { CBTInfographicGraphic } from './CBTInfographicGraphic';
 
 interface InfographicPromptViewProps {
   blueprintItems: AssessmentItem[];
@@ -25,9 +30,28 @@ export const InfographicPromptView: React.FC<InfographicPromptViewProps> = ({
   );
   const [selectedRatio, setSelectedRatio] = useState<'16:9' | 'A4' | '1:1'>('16:9');
   const [copiedSuccess, setCopiedSuccess] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'both' | 'graphic' | 'prompt'>('both');
 
   const activeItem = blueprintItems.find(i => i.id === selectedItemId) || blueprintItems[0];
   const promptData: InfographicPrompt = createInfographicPrompt(activeItem, selectedRatio);
+
+  // Derive QuestionData for the live graphic preview
+  const activeQuestion: QuestionData = FULL_BASELINE_QUESTIONS[activeItem.id] || {
+    id: `Q-${String(activeItem.no).padStart(2, '0')}`,
+    item_id: activeItem.id,
+    elemen: activeItem.elemen,
+    subelemen: activeItem.subelemen,
+    indikator: activeItem.indikator_prediktif,
+    level_kognitif: activeItem.level_kognitif,
+    bentuk_soal: activeItem.bentuk_soal,
+    konteks: activeItem.konteks,
+    stimulus_type: activeItem.stimulus,
+    stimulus_text: `Stimulus asesmen numerasi Fase D topik ${activeItem.subelemen}.`,
+    pertanyaan: 'Berdasarkan data infografis stimulus di atas, tentukan nilai parameter yang tepat!',
+    kunci: 'A',
+    pembahasan: 'Langkah pemecahan masalah numerasi.',
+    aspek_numerasi: activeItem.kemampuan_numerasi || 'Literasi numerasi Fase D'
+  };
 
   const handleCopyPrompt = () => {
     navigator.clipboard.writeText(promptData.full_prompt_text);
@@ -44,14 +68,14 @@ export const InfographicPromptView: React.FC<InfographicPromptViewProps> = ({
           <span>Fitur N & U · Desain Stimulus Visual Asesmen</span>
         </div>
         <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-          Generator Prompt Infografis Pendidikan
+          Generator Prompt Infografis & Visual Stimulus CBT
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Buat prompt terstruktur berstandar industri untuk generator AI gambar (Midjourney, Canva Magic Media, DALL-E 3, Gemini) dengan pengaman kebocoran kunci jawaban.
+          Buat prompt terstruktur untuk generator AI gambar (Midjourney, Canva, Gemini) dan lihat langsung hasil visual infografis yang ditampilkan pada menu Ujian Online (CBT ANBK).
         </p>
       </div>
 
-      {/* Selector & Ratio Controls */}
+      {/* Selector & Ratio Controls & Tab Preview Switcher */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-2">
@@ -81,7 +105,7 @@ export const InfographicPromptView: React.FC<InfographicPromptViewProps> = ({
                   key={r}
                   type="button"
                   onClick={() => setSelectedRatio(r)}
-                  className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
+                  className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                     selectedRatio === r
                       ? 'bg-slate-900 text-white border-slate-900'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -93,79 +117,146 @@ export const InfographicPromptView: React.FC<InfographicPromptViewProps> = ({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Structured Output Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column: Formatted Fields breakdown */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3 text-xs">
-          <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">
-            Elemen Spesifikasi Infografis
-          </h2>
-
-          <div className="space-y-1">
-            <span className="font-bold text-slate-600 block">Judul Desain:</span>
-            <p className="text-slate-800 font-semibold">{promptData.judul}</p>
-          </div>
-
-          <div className="space-y-1">
-            <span className="font-bold text-slate-600 block">Tujuan Visual:</span>
-            <p className="text-slate-700">{promptData.tujuan_visual}</p>
-          </div>
-
-          <div className="space-y-1">
-            <span className="font-bold text-slate-600 block">Elemen Visual:</span>
-            <p className="text-slate-700">{promptData.elemen_visual}</p>
-          </div>
-
-          <div className="space-y-1">
-            <span className="font-bold text-slate-600 block">Komposisi & Warna:</span>
-            <p className="text-slate-700">{promptData.warna}</p>
-          </div>
-
-          {/* Safety rules box */}
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-1.5 mt-2">
-            <div className="flex items-center gap-1.5 text-rose-800 font-bold">
-              <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
-              <span>Question Safety (Kaidah Anti-Bocor):</span>
-            </div>
-            <ul className="list-disc list-inside space-y-1 text-rose-900 text-[11px]">
-              {promptData.larangan.map((l, i) => (
-                <li key={i}>{l}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Right 2 Columns: The Full Portable Prompt */}
-        <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-600" />
-              <h2 className="text-sm font-bold text-slate-900">
-                Format Prompt Terstruktur [ROLE - OBJECTIVE - CONTENT - VISUAL - SAFETY - FORMAT]
-              </h2>
-            </div>
-
+        {/* View Mode Tabs */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
             <button
-              onClick={handleCopyPrompt}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-xs transition-colors"
+              type="button"
+              onClick={() => setPreviewMode('both')}
+              className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+                previewMode === 'both' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              {copiedSuccess ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedSuccess ? 'Prompt Tersalin!' : 'Copy Prompt'}</span>
+              Lengkap (Infografis + Prompt)
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewMode('graphic')}
+              className={`px-3 py-1.5 rounded-md font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                previewMode === 'graphic' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5 text-blue-600" />
+              <span>Gambar Infografis CBT</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewMode('prompt')}
+              className={`px-3 py-1.5 rounded-md font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                previewMode === 'prompt' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileCode className="w-3.5 h-3.5 text-purple-600" />
+              <span>Kode Prompt AI</span>
             </button>
           </div>
 
-          <div className="p-4 bg-slate-950 text-slate-100 font-mono text-xs rounded-xl overflow-x-auto leading-relaxed border border-slate-800 whitespace-pre-wrap">
-            {promptData.full_prompt_text}
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
-            <span>Dapat langsung ditempel ke Canva AI, Google AI Studio, Gemini, Midjourney, atau Photoshop AI.</span>
-            <span className="font-semibold text-slate-700">Rasio: {selectedRatio}</span>
+          <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+            <MonitorPlay className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Tersinkronisasi Otomatis ke Menu Ujian Online</span>
           </div>
         </div>
       </div>
+
+      {/* LIVE CBT INFOGRAPHIC GRAPHIC PREVIEW */}
+      {(previewMode === 'both' || previewMode === 'graphic') && (
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded bg-indigo-600 text-white">
+                <ImageIcon className="w-3.5 h-3.5" />
+              </span>
+              <h2 className="text-sm font-bold text-slate-900">
+                Pratinjau Infografis Gambar (Tampilan di Soal Ujian Online)
+              </h2>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-500">
+              Rasio {selectedRatio} · Standar Kemdikbud Safe Testing
+            </span>
+          </div>
+
+          <CBTInfographicGraphic
+            question={activeQuestion}
+            item={activeItem}
+            aspectRatio={selectedRatio}
+          />
+        </div>
+      )}
+
+      {/* Structured Output Card */}
+      {(previewMode === 'both' || previewMode === 'prompt') && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left Column: Formatted Fields breakdown */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3 text-xs">
+            <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">
+              Elemen Spesifikasi Infografis
+            </h2>
+
+            <div className="space-y-1">
+              <span className="font-bold text-slate-600 block">Judul Desain:</span>
+              <p className="text-slate-800 font-semibold">{promptData.judul}</p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="font-bold text-slate-600 block">Tujuan Visual:</span>
+              <p className="text-slate-700">{promptData.tujuan_visual}</p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="font-bold text-slate-600 block">Elemen Visual:</span>
+              <p className="text-slate-700">{promptData.elemen_visual}</p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="font-bold text-slate-600 block">Komposisi & Warna:</span>
+              <p className="text-slate-700">{promptData.warna}</p>
+            </div>
+
+            {/* Safety rules box */}
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-1.5 mt-2">
+              <div className="flex items-center gap-1.5 text-rose-800 font-bold">
+                <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Question Safety (Kaidah Anti-Bocor):</span>
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-rose-900 text-[11px]">
+                {promptData.larangan.map((l, i) => (
+                  <li key={i}>{l}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Right 2 Columns: The Full Portable Prompt */}
+          <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <h2 className="text-sm font-bold text-slate-900">
+                  Format Prompt Terstruktur [ROLE - OBJECTIVE - CONTENT - VISUAL - SAFETY - FORMAT]
+                </h2>
+              </div>
+
+              <button
+                onClick={handleCopyPrompt}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-xs transition-colors cursor-pointer"
+              >
+                {copiedSuccess ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedSuccess ? 'Prompt Tersalin!' : 'Copy Prompt'}</span>
+              </button>
+            </div>
+
+            <div className="p-4 bg-slate-950 text-slate-100 font-mono text-xs rounded-xl overflow-x-auto leading-relaxed border border-slate-800 whitespace-pre-wrap">
+              {promptData.full_prompt_text}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+              <span>Dapat langsung ditempel ke Canva AI, Google AI Studio, Gemini, Midjourney, atau Photoshop AI.</span>
+              <span className="font-semibold text-slate-700">Rasio: {selectedRatio}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

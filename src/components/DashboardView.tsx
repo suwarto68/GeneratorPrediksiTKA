@@ -67,6 +67,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
+              onClick={() => onNavigate('naskah-soal')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Buka Naskah Soal Lengkap ({total} Butir)</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button
               onClick={() => onNavigate('input-data')}
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg border border-slate-700 transition-all"
             >
