@@ -1,0 +1,6 @@
+{
+  "name": "PREDIKSI KISI-KISI TKA MATEMATIKA SMP 2027",
+  "description": "AI-Powered Assessment Blueprint Generator Berbasis Analisis Dokumen TKA Matematika SMP/MTs Fase D.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
